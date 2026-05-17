@@ -1,52 +1,41 @@
-version: '3'
-
 services:
-  # Base de Datos MySQL
+  web:
+    image: ocsinventory/ocsinventory-docker-image:2.10
+    container_name: ocsinventory-server
+    environment:
+      - OCS_DB_SERVER=ocsinventory-db
+      - OCS_MYSQL_USER=ocs
+      - OCS_MYSQL_PASS=ocs
+      - OCS_MYSQL_DBNAME=ocsweb
+    volumes:
+      - ocsdownload:/usr/share/ocsinventory-reports/ocsreports/download/
+      - ocssrv:/etc/ocsinventory-reports/
+      - ocslib:/var/lib/ocsinventory-reports/
+    ports:
+      - 80:80
+      - 443:443
+
   db:
     image: mysql:8.0
     container_name: ocsinventory-db
     restart: always
     environment:
-      - MYSQL_ROOT_PASSWORD=ocs
-      - MYSQL_DATABASE=ocsweb
+      - MYSQL_ROOT_PASSWORD=mdp
       - MYSQL_USER=ocs
       - MYSQL_PASSWORD=ocs
+      - MYSQL_DATABASE=ocsweb
     volumes:
-      - ocs_db:/var/lib/mysql
-
-  # Servidor OCS (Apache + PHP)
-  ocsinventory-server:
-    image: ocsinventory/ocsinventory-docker-image:2.10
-    container_name: ocsinventory-server
-    restart: always
-    depends_on:
-      - db
-    environment:
-      - OCS_DBNAME=ocsweb
-      - OCS_DBUSER=ocs
-      - OCS_DBPASS=ocs
-      - OCS_DBHOST=db
-    volumes:
-      - ocs_reports:/usr/share/ocsinventory-reports/ocsreports
-      - ocs_snmp:/etc/ocsinventory-server/snmp
-      - ocs_perl_mods:/etc/ocsinventory-server/perl-comun
-
-  # Proxy (Nginx) para gestionar el tráfico web
-  ocsinventory-proxy:
-    image: nginx
-    container_name: ocsinventory-proxy
-    restart: always
+      - ./sql/:/docker-entrypoint-initdb.d/
+      - ocsdata:/var/lib/mysql
     ports:
-      - "80:80"
-      - "443:443"
-    depends_on:
-      - ocsinventory-server
-    volumes:
-      - ocs_reports:/var/www/html/ocsreports
+      - 3306:3306
 
-# Definición de volúmenes persistentes
 volumes:
-  ocs_db:
-  ocs_reports:
-  ocs_snmp:
-  ocs_perl_mods:
+  ocsdata:
+    driver: local
+  ocssrv:
+    driver: local
+  ocsdownload:
+    driver: local
+  ocslib:
+    driver: local
