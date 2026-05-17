@@ -1,0 +1,52 @@
+version: '3'
+
+services:
+  # Base de Datos MySQL
+  db:
+    image: mysql:8.0
+    container_name: ocsinventory-db
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=ocs
+      - MYSQL_DATABASE=ocsweb
+      - MYSQL_USER=ocs
+      - MYSQL_PASSWORD=ocs
+    volumes:
+      - ocs_db:/var/lib/mysql
+
+  # Servidor OCS (Apache + PHP)
+  ocsinventory-server:
+    image: ocsinventory/ocsinventory-docker-image:2.10
+    container_name: ocsinventory-server
+    restart: always
+    depends_on:
+      - db
+    environment:
+      - OCS_DBNAME=ocsweb
+      - OCS_DBUSER=ocs
+      - OCS_DBPASS=ocs
+      - OCS_DBHOST=db
+    volumes:
+      - ocs_reports:/usr/share/ocsinventory-reports/ocsreports
+      - ocs_snmp:/etc/ocsinventory-server/snmp
+      - ocs_perl_mods:/etc/ocsinventory-server/perl-comun
+
+  # Proxy (Nginx) para gestionar el tráfico web
+  ocsinventory-proxy:
+    image: nginx
+    container_name: ocsinventory-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - ocsinventory-server
+    volumes:
+      - ocs_reports:/var/www/html/ocsreports
+
+# Definición de volúmenes persistentes
+volumes:
+  ocs_db:
+  ocs_reports:
+  ocs_snmp:
+  ocs_perl_mods:
